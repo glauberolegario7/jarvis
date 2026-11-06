@@ -12,10 +12,13 @@ Assistente pessoal que funciona como uma secretária virtual: você conversa com
 - **Finanças:** gastos, entradas, saldo do mês, gastos por categoria e orçamento mensal.
 - **Instalável:** no celular, abra o site e use "Adicionar à tela inicial".
 
-## Configuração
+## Configuração (gratuita)
 
-1. Crie uma chave da API em https://console.anthropic.com/settings/keys (é preciso adicionar créditos; o uso é cobrado por mensagem).
-2. No app, toque na engrenagem (⚙) e cole a chave.
+1. Entre em https://aistudio.google.com/apikey com sua conta Google e clique em **Create API key**. É grátis e não pede cartão.
+2. No app, toque na engrenagem (⚙), escolha **Google Gemini — gratuito** e cole a chave.
+
+O plano gratuito do Gemini tem limite de uso por minuto e por dia (mais que suficiente para uso pessoal), e o Google pode usar as mensagens enviadas no plano gratuito para melhorar os modelos dele.
+Se preferir, dá para usar o **Anthropic Claude** (pago por uso) com uma chave de https://console.anthropic.com/settings/keys.
 
 A chave e todos os seus dados ficam **somente no seu navegador** (localStorage). Nada é salvo neste repositório. Use **Exportar backup** nas configurações para guardar uma cópia ou levar os dados para outro aparelho.
 

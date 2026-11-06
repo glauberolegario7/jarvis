@@ -31,6 +31,7 @@ header{padding:18px 20px 8px;display:flex;align-items:center;gap:14px}
 .gear{margin-left:auto;align-self:flex-start;margin-top:4px}
 .banner .lnk{color:var(--accent);font-weight:700;text-decoration:underline}
 .sheet a{color:var(--accent)}
+#cfg-gemini[hidden],#cfg-anthropic[hidden]{display:none}
 .btn.danger{background:transparent;color:var(--warn);border:1px solid var(--warn-soft)}
 .logo{width:58px;height:58px;border-radius:50%;flex-shrink:0;box-shadow:0 0 18px rgba(46,197,240,.45);object-fit:cover}
 .hello{letter-spacing:.01em !important}
@@ -222,12 +223,23 @@ nav svg{width:22px;height:22px}
 
 <div class="sheet-bg" id="sh-cfg"><form class="sheet" id="f-cfg" autocomplete="off">
   <h3>Configurações</h3>
-  <div class="f"><label>Chave da API da Anthropic</label><input name="key" type="password" placeholder="sk-ant-..." spellcheck="false"></div>
-  <p class="small" style="margin:-4px 0 12px">Crie a sua em <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a> (precisa adicionar créditos). A chave fica salva <b>só neste aparelho</b> e é enviada apenas para a Anthropic.</p>
-  <div class="f"><label>Modelo</label><select name="model">
-    <option value="claude-sonnet-5-5">Sonnet 5.5 (recomendado)</option>
-    <option value="claude-haiku-5-5">Haiku 5.5 (mais barato e rápido)</option>
+  <div class="f"><label>Inteligência</label><select name="prov">
+    <option value="gemini">Google Gemini — gratuito</option>
+    <option value="anthropic">Anthropic Claude — pago por uso</option>
   </select></div>
+  <div id="cfg-gemini">
+    <div class="f"><label>Chave da API do Gemini</label><input name="kg" type="password" placeholder="AIza..." spellcheck="false"></div>
+    <p class="small" style="margin:-4px 0 12px">Crie grátis em <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> com sua conta Google, sem cartão de crédito. O plano gratuito tem limite diário de uso, e o Google pode usar as mensagens para melhorar os modelos dele.</p>
+  </div>
+  <div id="cfg-anthropic">
+    <div class="f"><label>Chave da API da Anthropic</label><input name="ka" type="password" placeholder="sk-ant-..." spellcheck="false"></div>
+    <div class="f"><label>Modelo</label><select name="model">
+      <option value="claude-sonnet-5-5">Sonnet 5.5 (recomendado)</option>
+      <option value="claude-haiku-5-5">Haiku 5.5 (mais barato e rápido)</option>
+    </select></div>
+    <p class="small" style="margin:-4px 0 12px">Crie em <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a> (precisa adicionar créditos).</p>
+  </div>
+  <p class="small" style="margin:0 0 12px">As chaves ficam salvas <b>só neste aparelho</b>.</p>
   <div class="actions" style="margin-bottom:18px"><button type="button" class="btn ghost" data-close>Fechar</button><button class="btn">Salvar</button></div>
   <div class="lbl" style="margin-bottom:6px">Seus dados</div>
   <p class="small" style="margin-bottom:10px">Os dados ficam guardados neste navegador. Faça backup de vez em quando ou para passar para outro aparelho.</p>
@@ -338,7 +350,7 @@ function renderHeader(){
   $("#today").textContent = `${WD[d.getDay()][0].toUpperCase()+WD[d.getDay()].slice(1)}, ${d.getDate()} de ${MES[d.getMonth()]}`;
   const b = [];
   let html = "";
-  if (!getKey()) html += `<div class="banner">Para eu entender frases livres e ler fotos, configure sua chave da API. <button class="lnk" data-open="cfg">Configurar agora</button><br><span class="small">Sem ela, entendo só frases simples como “gastei 45 no mercado”.</span></div>`;
+  if (!getKey()) html += `<div class="banner">Para eu entender frases livres e ler fotos, configure sua chave da API (o Gemini é gratuito). <button class="lnk" data-open="cfg">Configurar agora</button><br><span class="small">Sem ela, entendo só frases simples como “gastei 45 no mercado”.</span></div>`;
   $("#banners").innerHTML = html;
 }
 
@@ -514,8 +526,11 @@ Regras:
   • Na resposta, cite o estabelecimento e o valor lido para o usuário conferir.
 - "resposta": 1 a 4 frases curtas, tom caloroso e direto, em português do Brasil. Confirme o que anotou com valores em R$ (formato 1.234,56) e datas por extenso curto (ex.: "sexta, 13/11, às 15h"). Se um gasto fizer o mês passar de 80% ou 100% do orçamento, mencione de leve. Não use markdown nem emojis em excesso (no máximo um).`;
 
-const getKey = () => { try { return localStorage.getItem("jarvis_key") || ""; } catch { return ""; } };
-const getModel = () => { try { return localStorage.getItem("jarvis_model") || "claude-sonnet-5-5"; } catch { return "claude-sonnet-5-5"; } };
+const lsg = (k, d = "") => { try { return localStorage.getItem(k) || d; } catch { return d; } };
+const getProv = () => lsg("jarvis_prov", "gemini");
+const getKey = () => getProv() === "anthropic" ? lsg("jarvis_key") : lsg("jarvis_key_gemini");
+const getModel = () => lsg("jarvis_model", "claude-sonnet-5-5");
+const GEMINI_MODELS = ["gemini-flash-latest", "gemini-2.5-flash"];
 const blobToB64 = b => new Promise((ok, bad) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(",")[1]); fr.onerror = bad; fr.readAsDataURL(b); });
 async function askAssistant(text, image){
   const hist = S.chat.slice(-8, -1).map(m => ({ role: m.r === "u" ? "user" : "assistant", content: m.t }));
@@ -525,24 +540,49 @@ async function askAssistant(text, image){
   if (msgs.length && msgs[msgs.length-1].role === "user") msgs.pop();
   const final = `${SYSTEM}\n\n=== DADOS ATUAIS ===\n${contextBlock()}\n\n=== MENSAGEM DO USUÁRIO ===\n${image ? "[O usuário anexou uma FOTO — veja a imagem.]\n" : ""}${text || "(sem texto, só a foto)"}`;
   msgs.push({ role: "user", content: final });
-  if (image) {
+  const b64 = image ? await blobToB64(image) : null;
+  const out = getProv() === "anthropic" ? await callAnthropic(msgs, b64) : await callGemini(msgs, b64);
+  const mt = out.match(/\{[\s\S]*\}/);
+  if (mt) { try { const o = JSON.parse(mt[0]); if (o && typeof o === "object") return o; } catch {} }
+  return { acoes: [], resposta: out };
+}
+
+async function httpErr(r){
+  let m = ""; try { const j = await r.json(); m = (j.error && j.error.message) || ""; } catch {}
+  const e = new Error(m || ("HTTP " + r.status)); e.status = r.status; return e;
+}
+
+async function callGemini(msgs, b64){
+  const contents = msgs.map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
+  if (b64) contents[contents.length - 1].parts.unshift({ inline_data: { mime_type: "image/jpeg", data: b64 } });
+  const body = JSON.stringify({ contents, generationConfig: { responseMimeType: "application/json", temperature: 0.2 } });
+  let lastErr;
+  for (const model of GEMINI_MODELS) {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": getKey() }, body });
+    if (r.ok) {
+      const j = await r.json();
+      return ((j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) || []).map(p => p.text || "").join("").trim();
+    }
+    lastErr = await httpErr(r);
+    if (r.status !== 404) break; // só tenta o próximo modelo se este não existir
+  }
+  throw lastErr;
+}
+
+async function callAnthropic(msgs, b64){
+  if (b64) {
     const last = msgs[msgs.length - 1];
-    last.content = [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: await blobToB64(image) } }, { type: "text", text: last.content }];
+    last.content = [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }, { type: "text", text: last.content }];
   }
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": getKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
     body: JSON.stringify({ model: getModel(), max_tokens: 1200, messages: msgs })
   });
-  if (!r.ok) {
-    let m = ""; try { const j = await r.json(); m = (j.error && j.error.message) || ""; } catch {}
-    const e = new Error(m || ("HTTP " + r.status)); e.status = r.status; throw e;
-  }
+  if (!r.ok) throw await httpErr(r);
   const j = await r.json();
-  const out = (j.content || []).filter(c => c.type === "text").map(c => c.text).join("").trim();
-  const mt = out.match(/\{[\s\S]*\}/);
-  if (mt) { try { const o = JSON.parse(mt[0]); if (o && typeof o === "object") return o; } catch {} }
-  return { acoes: [], resposta: out };
+  return (j.content || []).filter(c => c.type === "text").map(c => c.text).join("").trim();
 }
 
 // tiny offline parser for when Claude is not available
@@ -648,7 +688,9 @@ async function send(text){
     else res = localParse(text);
   } catch (e) {
     const st = e && e.status;
-    if (st === 401 || st === 403) res = { acoes: [], resposta: "Minha chave da API foi recusada. Confira em Configurações se ela está correta." };
+    if (st === 429 && getProv() === "gemini") res = { acoes: [], resposta: "Chegamos ao limite gratuito do Gemini por agora. Espere um minuto (ou até amanhã, se foi o limite diário) e tente de novo." };
+    else if (st === 400 && /api key|API_KEY/i.test(e.message)) res = { acoes: [], resposta: "Minha chave da API foi recusada. Confira em Configurações se ela está correta." };
+    else if (st === 401 || st === 403) res = { acoes: [], resposta: "Minha chave da API foi recusada. Confira em Configurações se ela está correta." };
     else if (st === 400 && /credit|balance/i.test(e.message)) res = { acoes: [], resposta: "Sua conta da Anthropic está sem créditos. Adicione créditos em console.anthropic.com e tente de novo." };
     else if (st === 429 || st === 529) res = { acoes: [], resposta: "Estou recebendo muitos pedidos agora. Tente de novo em um minutinho." };
     else if (!st) res = { acoes: [], resposta: "Parece que você está sem internet. Tente de novo quando a conexão voltar." };
@@ -674,7 +716,7 @@ function openSheet(name, data){
   } else if (name === "tx") {
     const f = $("#f-tx"); f.reset(); f.data.value = ymd(new Date()); setTxType("gasto"); setTimeout(() => f.valor.focus(), 50);
   } else if (name === "cfg") {
-    const f = $("#f-cfg"); f.key.value = getKey(); f.model.value = getModel();
+    const f = $("#f-cfg"); f.prov.value = getProv(); f.kg.value = lsg("jarvis_key_gemini"); f.ka.value = lsg("jarvis_key"); f.model.value = getModel(); syncCfg();
   } else if (name === "budget") {
     $("#f-budget").orcamento.value = S.cfg.orcamento ? String(S.cfg.orcamento).replace(".", ",") : "";
   }
@@ -706,9 +748,16 @@ $("#f-budget").addEventListener("submit", async ev => {
 });
 $("#f-cfg").addEventListener("submit", ev => {
   ev.preventDefault(); const f = ev.target;
-  try { localStorage.setItem("jarvis_key", f.key.value.trim()); localStorage.setItem("jarvis_model", f.model.value); } catch { toast("Este navegador não deixou salvar"); return; }
-  closeSheets(); render(); toast(f.key.value.trim() ? "Configurações salvas" : "Chave removida");
+  try {
+    localStorage.setItem("jarvis_prov", f.prov.value);
+    localStorage.setItem("jarvis_key_gemini", f.kg.value.trim());
+    localStorage.setItem("jarvis_key", f.ka.value.trim());
+    localStorage.setItem("jarvis_model", f.model.value);
+  } catch { toast("Este navegador não deixou salvar"); return; }
+  closeSheets(); render(); toast(getKey() ? "Configurações salvas" : "Configurações salvas — falta a chave");
 });
+function syncCfg(){ const g = $("#f-cfg").prov.value === "gemini"; $("#cfg-gemini").hidden = !g; $("#cfg-anthropic").hidden = g; }
+$("#f-cfg").prov.addEventListener("change", syncCfg);
 $("#exp").addEventListener("click", () => {
   const data = { app: "jarvis", versao: 1, exportadoEm: new Date().toISOString(), lancamentos: S.lanc, compromissos: S.ev, config: S.cfg, chat: S.chat };
   const a = document.createElement("a");
