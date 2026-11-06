@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JARVIS</title>
+<link rel="icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JARVIS">
+<meta name="theme-color" content="#06111c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06111c; --card:#0c1d2c; --ink:#e3f3fb; --muted:#7f9db0; --line:#16324a;
+  --accent:#2ec5f0; --accent-soft:#0f3348; --warn:#ff8a5c; --warn-soft:#3a1f17;
+  --gold:#f2c14e; --gold-soft:#2e2814; --user:#1690c0; --user-ink:#fff;
+  --shadow:0 0 0 1px rgba(46,197,240,.04),0 6px 20px rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:"DM Sans",system-ui,sans-serif;background:radial-gradient(ellipse at 50% -10%,#0d2a40 0%,var(--bg) 55%) fixed,var(--bg);color:var(--ink);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
+input,select,textarea{font:inherit;color:var(--ink)}
+.app{max-width:640px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+header{padding:18px 20px 8px;display:flex;align-items:center;gap:14px}
+.gear{margin-left:auto;align-self:flex-start;margin-top:4px}
+.banner .lnk{color:var(--accent);font-weight:700;text-decoration:underline}
+.sheet a{color:var(--accent)}
+.btn.danger{background:transparent;color:var(--warn);border:1px solid var(--warn-soft)}
+.logo{width:58px;height:58px;border-radius:50%;flex-shrink:0;box-shadow:0 0 18px rgba(46,197,240,.45);object-fit:cover}
+.hello{letter-spacing:.01em !important}
+.hello{font-family:Rajdhani,system-ui,sans-serif;font-size:25px;font-weight:600;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:14px;margin-top:2px}
+.banner{margin:8px 16px 0;padding:10px 14px;border-radius:12px;font-size:13px;background:var(--gold-soft);color:var(--ink)}
+main{flex:1;padding:8px 16px calc(96px + env(safe-area-inset-bottom))}
+.view{display:none}.view.on{display:block}
+
+/* cards */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow)}
+.card.wide{grid-column:1/-1}
+.lbl{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.big{font-size:22px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
+.small{font-size:13px;color:var(--muted)}
+.next-title{font-weight:600;font-size:16px;margin-top:4px}
+.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:8px}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.bar.over>i{background:var(--warn)}
+
+/* chat */
+.chat{display:flex;flex-direction:column;gap:8px;padding-bottom:8px}
+.msg{max-width:86%;padding:10px 14px;border-radius:18px;white-space:pre-wrap;word-wrap:break-word}
+.msg.a{background:var(--card);border:1px solid var(--line);border-bottom-left-radius:6px;align-self:flex-start}
+.msg.u{background:var(--user);color:var(--user-ink);border-bottom-right-radius:6px;align-self:flex-end}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font-size:12px;padding:3px 9px;border-radius:99px;background:var(--accent-soft);color:var(--ink);font-weight:500}
+.chip.g{background:var(--warn-soft)}.chip.e{background:var(--gold-soft)}
+.typing{display:inline-flex;gap:4px}.typing i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:b 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{opacity:.3}30%{opacity:1}}
+.suggest{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none}
+.suggest button{white-space:nowrap;font-size:13px;padding:7px 12px;border-radius:99px;border:1px solid var(--line);background:var(--card)}
+.composer{position:fixed;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom));padding:8px 12px;background:linear-gradient(to top,var(--bg) 70%,transparent)}
+.composer form{max-width:616px;margin:0 auto;display:flex;gap:8px;align-items:flex-end;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:6px 6px 6px 14px;box-shadow:var(--shadow)}
+.composer textarea{flex:1;border:none;outline:none;background:transparent;resize:none;max-height:120px;padding:7px 0;line-height:1.4}
+.send{width:38px;height:38px;border-radius:50%;background:var(--accent);color:#04121c;display:grid;place-items:center;flex-shrink:0}
+.send:disabled{opacity:.4}
+.composer form{padding-left:6px}
+.cam{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:var(--muted);flex-shrink:0}
+.cam[hidden]{display:none}
+.cam:hover{background:var(--bg);color:var(--accent)}
+.photo-prev{max-width:616px;margin:0 auto 6px;display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px 10px;font-size:13px;color:var(--muted)}
+.photo-prev[hidden]{display:none}
+.photo-prev img{width:40px;height:40px;object-fit:cover;border-radius:8px}
+.photo-prev span{flex:1}
+.msg img.ph{display:block;max-width:180px;max-height:180px;border-radius:12px;margin-bottom:6px}
+.view#v-home{padding-bottom:70px}
+
+/* lists */
+.sec-h{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 8px}
+.sec-h h2{font-family:Rajdhani,system-ui,sans-serif;font-size:19px;font-weight:600}
+.btn{padding:8px 14px;border-radius:99px;background:var(--accent);color:#04121c;font-weight:600;font-size:14px}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+.day{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;margin:14px 4px 6px}
+.item{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:6px}
+.item .time{font-weight:700;font-variant-numeric:tabular-nums;min-width:46px;color:var(--accent)}
+.item .body{flex:1;min-width:0}
+.item .t{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.item.done .t{text-decoration:line-through;color:var(--muted)}
+.item .val{font-weight:700;font-variant-numeric:tabular-nums}
+.item .val.in{color:var(--accent)}
+.ib{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--muted);flex-shrink:0}
+.ib:hover{background:var(--bg);color:var(--ink)}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.empty{text-align:center;color:var(--muted);padding:28px 12px;font-size:14px}
+.month{display:flex;align-items:center;justify-content:center;gap:14px;margin:4px 0 6px}
+.month b{font-family:Rajdhani,system-ui,sans-serif;font-size:18px;font-weight:600;min-width:150px;text-align:center}
+.cat{display:grid;grid-template-columns:10px 1fr auto;gap:8px;align-items:center;margin:8px 0;font-size:14px}
+.cat .bar{grid-column:2/4;margin-top:0;height:6px}
+
+/* tabs */
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav .in{max-width:640px;margin:0 auto;display:flex}
+nav button{flex:1;padding:9px 0 10px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--muted);font-weight:500}
+nav button.on{color:var(--accent)}
+nav svg{width:22px;height:22px}
+
+/* modal */
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:flex-end;justify-content:center;z-index:20}
+.sheet-bg.on{display:flex}
+.sheet{background:var(--card);width:100%;max-width:640px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto}
+.sheet h3{font-family:Rajdhani,system-ui,sans-serif;font-size:20px;font-weight:600;margin-bottom:12px}
+.f{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.f label{font-size:13px;color:var(--muted);font-weight:500}
+.f input,.f select{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;outline:none;width:100%}
+.f input:focus,.f select:focus{border-color:var(--accent)}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.seg{display:flex;background:var(--bg);border-radius:10px;padding:3px;margin-bottom:12px}
+.seg button{flex:1;padding:8px;border-radius:8px;font-weight:600;font-size:14px;color:var(--muted)}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
+
+/* toast */
+.toasts{position:fixed;top:calc(12px + env(safe-area-inset-top));left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:8px;z-index:30;pointer-events:none}
+.toast{pointer-events:auto;background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:14px;font-size:14px;max-width:92%;display:flex;gap:12px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.toast.rem{background:var(--warn);color:#fff}
+.toast button{font-weight:700;text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <img class="logo" src="logo.png" alt="JARVIS">
+    <div><div class="hello" id="hello">Olá!</div>
+    <div class="sub" id="today"></div></div>
+    <button class="ib gear" data-open="cfg" aria-label="Configurações" title="Configurações"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </header>
+  <div id="banners"></div>
+  <main>
+    <!-- HOME -->
+    <section class="view on" id="v-home">
+      <div class="grid">
+        <div class="card wide" id="c-next"></div>
+        <div class="card" id="c-today"></div>
+        <div class="card" id="c-month"></div>
+      </div>
+      <div class="chat" id="chat"></div>
+    </section>
+
+    <!-- AGENDA -->
+    <section class="view" id="v-agenda">
+      <div class="sec-h"><h2>Agenda</h2><button class="btn" data-open="ev">+ Compromisso</button></div>
+      <div id="notif-row"></div>
+      <div id="agenda"></div>
+    </section>
+
+    <!-- GASTOS -->
+    <section class="view" id="v-gastos">
+      <div class="sec-h"><h2>Finanças</h2><button class="btn" data-open="tx">+ Lançamento</button></div>
+      <div class="month">
+        <button class="ib" id="m-prev" aria-label="Mês anterior"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <b id="m-label"></b>
+        <button class="ib" id="m-next" aria-label="Próximo mês"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
+      <div class="grid" id="fin-cards"></div>
+      <div id="fin-cats"></div>
+      <div id="fin-list"></div>
+    </section>
+  </main>
+</div>
+
+<div class="composer" id="composer">
+  <div id="photo-prev" class="photo-prev" hidden><img id="photo-img" alt=""><span>Foto anexada</span><button type="button" id="photo-x" aria-label="Remover foto">✕</button></div>
+  <form id="chat-form">
+    <input type="file" id="photo-in" accept="image/*" hidden>
+    <button type="button" class="cam" id="cam" aria-label="Enviar foto de comprovante" title="Foto de comprovante" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+    <textarea id="chat-in" rows="1" placeholder="Fale com o JARVIS…"></textarea>
+    <button class="send" id="send" aria-label="Enviar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  </form>
+</div>
+
+<nav><div class="in">
+  <button class="on" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>JARVIS</button>
+  <button data-tab="agenda"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Agenda</button>
+  <button data-tab="gastos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h3"/></svg>Finanças</button>
+</div></nav>
+
+<!-- sheets -->
+<div class="sheet-bg" id="sh-ev"><form class="sheet" id="f-ev">
+  <h3 id="ev-h">Novo compromisso</h3>
+  <div class="f"><label>O quê</label><input name="titulo" required placeholder="Ex.: Dentista"></div>
+  <div class="row"><div class="f"><label>Data</label><input type="date" name="data" required></div>
+  <div class="f"><label>Hora</label><input type="time" name="hora"></div></div>
+  <div class="f"><label>Local (opcional)</label><input name="local"></div>
+  <div class="f"><label>Me avisar</label><select name="lembrete_min">
+    <option value="0">Na hora</option><option value="15">15 min antes</option><option value="30">30 min antes</option>
+    <option value="60" selected>1 hora antes</option><option value="120">2 horas antes</option><option value="1440">1 dia antes</option></select></div>
+  <div class="actions"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn">Salvar</button></div>
+</form></div>
+
+<div class="sheet-bg" id="sh-tx"><form class="sheet" id="f-tx">
+  <h3>Novo lançamento</h3>
+  <div class="seg" id="tx-seg"><button type="button" class="on" data-v="gasto">Gasto</button><button type="button" data-v="entrada">Entrada</button></div>
+  <div class="f"><label>Valor (R$)</label><input name="valor" inputmode="decimal" required placeholder="0,00"></div>
+  <div class="f"><label>Descrição</label><input name="descricao" placeholder="Ex.: Mercado"></div>
+  <div class="row"><div class="f" id="tx-cat"><label>Categoria</label><select name="categoria"></select></div>
+  <div class="f"><label>Data</label><input type="date" name="data" required></div></div>
+  <div class="actions"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn">Salvar</button></div>
+</form></div>
+
+<div class="sheet-bg" id="sh-budget"><form class="sheet" id="f-budget">
+  <h3>Orçamento mensal</h3>
+  <p class="small" style="margin-bottom:12px">Quanto você quer gastar no máximo por mês? Eu aviso quando estiver chegando perto.</p>
+  <div class="f"><label>Valor (R$)</label><input name="orcamento" inputmode="decimal" placeholder="Ex.: 3000"></div>
+  <div class="actions"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn">Salvar</button></div>
+</form></div>
+
+<div class="sheet-bg" id="sh-cfg"><form class="sheet" id="f-cfg" autocomplete="off">
+  <h3>Configurações</h3>
+  <div class="f"><label>Chave da API da Anthropic</label><input name="key" type="password" placeholder="sk-ant-..." spellcheck="false"></div>
+  <p class="small" style="margin:-4px 0 12px">Crie a sua em <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a> (precisa adicionar créditos). A chave fica salva <b>só neste aparelho</b> e é enviada apenas para a Anthropic.</p>
+  <div class="f"><label>Modelo</label><select name="model">
+    <option value="claude-sonnet-5-5">Sonnet 5.5 (recomendado)</option>
+    <option value="claude-haiku-5-5">Haiku 5.5 (mais barato e rápido)</option>
+  </select></div>
+  <div class="actions" style="margin-bottom:18px"><button type="button" class="btn ghost" data-close>Fechar</button><button class="btn">Salvar</button></div>
+  <div class="lbl" style="margin-bottom:6px">Seus dados</div>
+  <p class="small" style="margin-bottom:10px">Os dados ficam guardados neste navegador. Faça backup de vez em quando ou para passar para outro aparelho.</p>
+  <div class="actions" style="justify-content:flex-start;flex-wrap:wrap">
+    <button type="button" class="btn ghost" id="exp">Exportar backup</button>
+    <button type="button" class="btn ghost" id="imp">Importar backup</button>
+    <button type="button" class="btn danger" id="wipe">Apagar tudo</button>
+  </div>
+  <input type="file" id="imp-in" accept="application/json,.json" hidden>
+</form></div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+(() => {
+"use strict";
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2, "0");
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseYmd = s => { const [y,m,d] = String(s).split("-").map(Number); return new Date(y, m-1, d); };
+const validYmd = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s||"")) && !isNaN(parseYmd(s)) ? s : null;
+const validHm = s => /^\d{2}:\d{2}$/.test(String(s||"")) ? s : "";
+const brl = v => (Number(v)||0).toLocaleString("pt-BR", {style:"currency", currency:"BRL"});
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const WD = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
+const MES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+const evTs = e => { const d = parseYmd(e.data); if (e.hora) { const [h,m] = e.hora.split(":").map(Number); d.setHours(h, m, 0, 0); } else d.setHours(23,59,0,0); return d.getTime(); };
+const dayLabel = s => {
+  const d = parseYmd(s), t = new Date(); t.setHours(0,0,0,0);
+  const diff = Math.round((d - t) / 864e5);
+  if (diff === 0) return "Hoje"; if (diff === 1) return "Amanhã"; if (diff === -1) return "Ontem";
+  return `${WD[d.getDay()]}, ${d.getDate()} de ${MES[d.getMonth()]}`;
+};
+const dShort = s => { const d = parseYmd(s); return `${pad(d.getDate())}/${pad(d.getMonth()+1)}`; };
+const parseMoney = s => { s = String(s).replace(/[^\d,.-]/g, ""); if (s.includes(",")) s = s.replace(/\./g, "").replace(",", "."); return Number(s); };
+const CATS = ["Mercado","Alimentação","Transporte","Moradia","Contas","Saúde","Lazer","Compras","Educação","Pets","Outros"];
+const CAT_COLORS = {"Mercado":"#1c6b5e","Alimentação":"#c4572e","Transporte":"#3f6fb5","Moradia":"#8a5a9c","Contas":"#b98a2c","Saúde":"#d0607c","Lazer":"#2f9c8f","Compras":"#7a8a3a","Educação":"#5b6bd1","Pets":"#a0704a","Outros":"#8a9493"};
+
+/* ---------- state ---------- */
+const S = { lanc: {}, ev: {}, cfg: {}, chat: [], mode: "loading", sample: null, busy: false, month: new Date() };
+S.month.setDate(1);
+
+/* ---------- storage (db or local fallback) ---------- */
+let db = null;
+const LS = {
+  get(k){ try { return JSON.parse(localStorage.getItem("sec_"+k) || "null"); } catch { return null; } },
+  set(k,v){ try { localStorage.setItem("sec_"+k, JSON.stringify(v)); } catch {} }
+};
+const store = {
+  async put(col, id, obj){
+    if (db) { await db.collection(col).doc(id).set(obj); }
+    else { const m = S[col === "lancamentos" ? "lanc" : "ev"]; m[id] = obj; LS.set(col, m); render(); }
+  },
+  async patch(col, id, p){
+    const m = S[col === "lancamentos" ? "lanc" : "ev"];
+    const next = Object.assign({}, m[id] || {}, p);
+    if (db) { await db.collection(col).doc(id).set(next); }
+    else { m[id] = next; LS.set(col, m); render(); }
+  },
+  async del(col, id){
+    if (db) { await db.collection(col).doc(id).delete(); }
+    else { const m = S[col === "lancamentos" ? "lanc" : "ev"]; delete m[id]; LS.set(col, m); render(); }
+  },
+  async cfg(obj){
+    S.cfg = Object.assign({}, S.cfg, obj);
+    if (db) await db.doc("config/geral").set(S.cfg); else { LS.set("config", S.cfg); render(); }
+  },
+  async chat(){
+    const msgs = S.chat.slice(-60);
+    if (db) await db.doc("chat/historico").set({ msgs }); else LS.set("chat", msgs);
+  }
+};
+const safe = async (fn, msg) => { try { await fn(); return true; } catch (e) { toast((msg || "Não consegui salvar") + (e && e.message ? ": " + e.message : "")); return false; } };
+
+/* ---------- toasts ---------- */
+function toast(text, opts = {}){
+  const el = document.createElement("div");
+  el.className = "toast" + (opts.rem ? " rem" : "");
+  el.innerHTML = `<span>${esc(text)}</span>` + (opts.undo ? `<button>Desfazer</button>` : "");
+  if (opts.undo) el.querySelector("button").onclick = () => { opts.undo(); el.remove(); };
+  $("#toasts").appendChild(el);
+  setTimeout(() => el.remove(), opts.ms || 4500);
+}
+
+/* ---------- render ---------- */
+const lancList = () => Object.entries(S.lanc).map(([id, v]) => ({ id, ...v }));
+const evList = () => Object.entries(S.ev).map(([id, v]) => ({ id, ...v }));
+const monthKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+function monthTotals(mk){
+  let out = 0, inn = 0; const cats = {};
+  for (const l of lancList()) if (String(l.data).startsWith(mk)) {
+    if (l.tipo === "entrada") inn += l.valor; else { out += l.valor; cats[l.categoria||"Outros"] = (cats[l.categoria||"Outros"]||0) + l.valor; }
+  }
+  return { out, inn, cats };
+}
+function upcoming(){
+  const now = Date.now(), t0 = new Date(); t0.setHours(0,0,0,0);
+  return evList().filter(e => !e.concluido && (e.hora ? evTs(e) >= now - 30*60e3 : parseYmd(e.data) >= t0)).sort((a,b) => evTs(a) - evTs(b));
+}
+
+function renderHeader(){
+  const h = new Date().getHours();
+  $("#hello").textContent = (h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite") + ", aqui é o JARVIS.";
+  const d = new Date();
+  $("#today").textContent = `${WD[d.getDay()][0].toUpperCase()+WD[d.getDay()].slice(1)}, ${d.getDate()} de ${MES[d.getMonth()]}`;
+  const b = [];
+  let html = "";
+  if (!getKey()) html += `<div class="banner">Para eu entender frases livres e ler fotos, configure sua chave da API. <button class="lnk" data-open="cfg">Configurar agora</button><br><span class="small">Sem ela, entendo só frases simples como “gastei 45 no mercado”.</span></div>`;
+  $("#banners").innerHTML = html;
+}
+
+function renderHome(){
+  const up = upcoming();
+  const nx = up[0];
+  $("#c-next").innerHTML = `<div class="lbl">Próximo compromisso</div>` + (nx
+    ? `<div class="next-title">${esc(nx.titulo)}</div><div class="small">${esc(dayLabel(nx.data))}${nx.hora ? " às " + esc(nx.hora) : ""}${nx.local ? " · " + esc(nx.local) : ""}</div>`
+    : `<div class="small" style="margin-top:6px">Nada marcado. Me conte seus próximos compromissos!</div>`);
+  const today = ymd(new Date());
+  const nToday = evList().filter(e => e.data === today && !e.concluido).length;
+  $("#c-today").innerHTML = `<div class="lbl">Hoje</div><div class="big">${nToday}</div><div class="small">${nToday === 1 ? "compromisso" : "compromissos"}</div>`;
+  const mt = monthTotals(monthKey(new Date()));
+  const orc = Number(S.cfg.orcamento) || 0;
+  const pct = orc ? Math.min(100, mt.out / orc * 100) : 0;
+  $("#c-month").innerHTML = `<div class="lbl">Gasto no mês</div><div class="big">${brl(mt.out)}</div>` +
+    (orc ? `<div class="bar ${mt.out > orc ? "over" : ""}"><i style="width:${pct}%"></i></div><div class="small" style="margin-top:4px">${mt.out > orc ? "Passou " + brl(mt.out - orc) + " do orçamento" : "de " + brl(orc)}</div>`
+         : `<div class="small"><button style="color:var(--accent);font-weight:600" data-open="budget">Definir orçamento</button></div>`);
+  renderChat();
+}
+
+function renderChat(){
+  const c = $("#chat");
+  let html = "";
+  if (!S.chat.length) {
+    html += `<div class="msg a">Olá! Sou o JARVIS, seu assistente pessoal. Pode me mandar as coisas do jeito que você falaria:\n\n• “gastei 32,90 no almoço”\n• “dentista quinta às 14h, me avisa 1 hora antes”\n• “recebi 4.500 de salário”\n• uma foto do cupom, comprovante ou boleto\n• “quanto gastei com mercado esse mês?”\n• “o que tenho amanhã?”\n\nEu anoto tudo e te aviso dos compromissos.</div>`;
+  }
+  for (const m of S.chat) {
+    html += `<div class="msg ${m.r === "u" ? "u" : "a"}">${m.img ? `<img class="ph" src="${esc(m.img)}" alt="Foto enviada">` : ""}${esc(m.t)}${m.chips && m.chips.length ? `<div class="chips">${m.chips.map(ch => `<span class="chip ${ch.k||""}">${esc(ch.t)}</span>`).join("")}</div>` : ""}</div>`;
+  }
+  if (S.busy) html += `<div class="msg a"><span class="typing"><i></i><i></i><i></i></span></div>`;
+  if (!S.busy) html += `<div class="suggest">${["O que tenho hoje?","Quanto gastei esse mês?","Resumo da semana"].map(s => `<button data-say="${esc(s)}">${esc(s)}</button>`).join("")}</div>`;
+  c.innerHTML = html;
+}
+
+function renderAgenda(){
+  const t0 = new Date(); t0.setHours(0,0,0,0);
+  const all = evList().sort((a,b) => evTs(a) - evTs(b));
+  const fut = all.filter(e => parseYmd(e.data) >= t0);
+  const past = all.filter(e => parseYmd(e.data) < t0 && parseYmd(e.data) >= new Date(t0 - 14*864e5)).reverse();
+  const groups = {};
+  for (const e of fut) (groups[e.data] = groups[e.data] || []).push(e);
+  let html = "";
+  if (!fut.length) html += `<div class="empty">Nenhum compromisso pela frente.<br>Toque em “+ Compromisso” ou me conte na conversa.</div>`;
+  for (const [d, list] of Object.entries(groups)) {
+    html += `<div class="day">${esc(dayLabel(d))}</div>` + list.map(evItem).join("");
+  }
+  if (past.length) html += `<div class="day" style="margin-top:22px">Últimos 14 dias</div>` + past.map(evItem).join("");
+  $("#agenda").innerHTML = html;
+  const perm = ("Notification" in window) ? Notification.permission : "unsupported";
+  $("#notif-row").innerHTML = perm === "default"
+    ? `<div class="banner" style="margin:0 0 8px;display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Quer avisos do navegador além dos avisos aqui no app?</span><button class="btn" id="notif-btn" style="flex-shrink:0">Ativar</button></div>` : "";
+}
+function evItem(e){
+  const rem = e.hora ? (e.lembrete_min >= 1440 ? "aviso 1 dia antes" : e.lembrete_min >= 60 ? `aviso ${e.lembrete_min/60}h antes` : e.lembrete_min > 0 ? `aviso ${e.lembrete_min} min antes` : "aviso na hora") : "dia todo";
+  return `<div class="item ${e.concluido ? "done" : ""}">
+    <div class="time">${esc(e.hora || "—")}</div>
+    <div class="body"><div class="t">${esc(e.titulo)}</div><div class="small">${[e.local, rem].filter(Boolean).map(esc).join(" · ")}</div></div>
+    <button class="ib" data-done="${esc(e.id)}" aria-label="${e.concluido ? "Reabrir" : "Concluir"}" title="${e.concluido ? "Reabrir" : "Concluir"}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></button>
+    <button class="ib" data-edit-ev="${esc(e.id)}" aria-label="Editar" title="Editar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg></button>
+    <button class="ib" data-del-ev="${esc(e.id)}" aria-label="Apagar" title="Apagar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg></button>
+  </div>`;
+}
+
+function renderGastos(){
+  const mk = monthKey(S.month);
+  $("#m-label").textContent = `${MES[S.month.getMonth()][0].toUpperCase() + MES[S.month.getMonth()].slice(1)} ${S.month.getFullYear()}`;
+  const mt = monthTotals(mk);
+  const orc = Number(S.cfg.orcamento) || 0;
+  $("#fin-cards").innerHTML =
+    `<div class="card"><div class="lbl">Gastos</div><div class="big" style="color:var(--warn)">${brl(mt.out)}</div></div>
+     <div class="card"><div class="lbl">Entradas</div><div class="big" style="color:var(--accent)">${brl(mt.inn)}</div></div>
+     <div class="card wide"><div style="display:flex;justify-content:space-between;align-items:baseline"><div class="lbl">Saldo do mês</div><button class="small" data-open="budget" style="color:var(--accent);font-weight:600">${orc ? "Orçamento: " + brl(orc) : "Definir orçamento"}</button></div>
+       <div class="big">${brl(mt.inn - mt.out)}</div>
+       ${orc ? `<div class="bar ${mt.out > orc ? "over" : ""}"><i style="width:${Math.min(100, mt.out/orc*100)}%"></i></div><div class="small" style="margin-top:4px">${mt.out > orc ? "Acima do orçamento em " + brl(mt.out - orc) : "Restam " + brl(orc - mt.out) + " do orçamento"}</div>` : ""}</div>`;
+  const cats = Object.entries(mt.cats).sort((a,b) => b[1] - a[1]);
+  $("#fin-cats").innerHTML = cats.length ? `<div class="card"><div class="lbl" style="margin-bottom:4px">Por categoria</div>${cats.map(([c, v]) =>
+    `<div class="cat"><span class="dot" style="background:${CAT_COLORS[c]||"#8a9493"}"></span><span>${esc(c)}</span><b style="font-variant-numeric:tabular-nums">${brl(v)}</b><div class="bar"><i style="width:${v/cats[0][1]*100}%;background:${CAT_COLORS[c]||"#8a9493"}"></i></div></div>`).join("")}</div>` : "";
+  const list = lancList().filter(l => String(l.data).startsWith(mk)).sort((a,b) => b.data.localeCompare(a.data) || (b.criadoEm||0) - (a.criadoEm||0));
+  let html = `<div class="sec-h" style="margin-top:20px"><h2 style="font-size:17px">Lançamentos</h2></div>`;
+  if (!list.length) html += `<div class="empty">Nada lançado neste mês.</div>`;
+  for (const l of list) {
+    const isIn = l.tipo === "entrada";
+    html += `<div class="item"><span class="dot" style="background:${isIn ? "var(--accent)" : (CAT_COLORS[l.categoria]||"#8a9493")}"></span>
+      <div class="body"><div class="t">${esc(l.descricao)}</div><div class="small">${esc(dShort(l.data))} · ${esc(isIn ? "Entrada" : l.categoria)}</div></div>
+      <div class="val ${isIn ? "in" : ""}">${isIn ? "+" : "−"} ${brl(l.valor)}</div>
+      <button class="ib" data-del-tx="${esc(l.id)}" aria-label="Apagar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg></button></div>`;
+  }
+  $("#fin-list").innerHTML = html;
+}
+
+let curTab = "home";
+function render(){ renderHeader(); renderHome(); renderAgenda(); renderGastos(); }
+function setTab(t){
+  curTab = t;
+  $$("nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
+  $$(".view").forEach(v => v.classList.toggle("on", v.id === "v-" + t));
+  $("#composer").style.display = t === "home" ? "" : "none";
+  if (t === "home") scrollChat(); else window.scrollTo(0, 0);
+}
+const scrollChat = () => requestAnimationFrame(() => window.scrollTo(0, document.body.scrollHeight));
+
+/* ---------- reminders ---------- */
+const notified = new Set(LS.get("notified") || []);
+function checkReminders(){
+  const now = Date.now();
+  for (const e of evList()) {
+    if (e.concluido || !e.hora) continue;
+    const ts = evTs(e), at = ts - (Number(e.lembrete_min) || 0) * 60e3;
+    const key = e.id + "@" + e.data + e.hora + "@" + e.lembrete_min;
+    if (now >= at && now < ts + 60*60e3 && !notified.has(key)) {
+      notified.add(key); LS.set("notified", [...notified].slice(-200));
+      const mins = Math.round((ts - now) / 60e3);
+      const when = mins <= 0 ? "agora" : mins < 60 ? `em ${mins} min` : mins < 1440 ? `às ${e.hora}` : `${dayLabel(e.data).toLowerCase()} às ${e.hora}`;
+      const txt = `Lembrete: ${e.titulo} ${when}${e.local ? " · " + e.local : ""}`;
+      toast(txt, { rem: true, ms: 15000 });
+      try {
+        if ("Notification" in window && Notification.permission === "granted") {
+          if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.ready.then(r => r.showNotification("JARVIS", { body: txt, icon: "icon-192.png", badge: "icon-192.png", tag: key }));
+          else new Notification("JARVIS", { body: txt, icon: "icon-192.png" });
+        }
+      } catch {}
+    }
+  }
+}
+
+/* ---------- the assistant ---------- */
+function contextBlock(){
+  const now = new Date();
+  const evs = evList().filter(e => parseYmd(e.data) >= new Date(now - 7*864e5)).sort((a,b) => evTs(a) - evTs(b)).slice(0, 60)
+    .map(e => `${e.id} | ${e.data} | ${e.hora || "dia todo"} | ${e.titulo}${e.local ? " | " + e.local : ""}${e.concluido ? " | CONCLUÍDO" : ""}`).join("\n") || "(nenhum)";
+  const since = ymd(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+  const lc = lancList().filter(l => l.data >= since).sort((a,b) => b.data.localeCompare(a.data)).slice(0, 120)
+    .map(l => `${l.id} | ${l.data} | ${l.tipo} | ${l.valor.toFixed(2)} | ${l.tipo === "entrada" ? "-" : l.categoria} | ${l.descricao}`).join("\n") || "(nenhum)";
+  const mt = monthTotals(monthKey(now));
+  return `Agora: ${WD[now.getDay()]}, ${ymd(now)} ${pad(now.getHours())}:${pad(now.getMinutes())} (horário local do usuário).
+Orçamento mensal: ${S.cfg.orcamento ? Number(S.cfg.orcamento).toFixed(2) : "não definido"}.
+Mês atual — gastos: ${mt.out.toFixed(2)}, entradas: ${mt.inn.toFixed(2)}.
+
+COMPROMISSOS (id | data | hora | título | local):
+${evs}
+
+LANÇAMENTOS desde o mês passado (id | data | tipo | valor | categoria | descrição):
+${lc}`;
+}
+
+const SYSTEM = `Você é JARVIS, o assistente pessoal do usuário: fala português do Brasil, é cordial, eficiente, preciso e breve, com um toque leve de elegância. Refira-se a si mesmo no masculino. Você controla a agenda e as finanças dele.
+Leia a mensagem do usuário, decida as ações e responda APENAS com um objeto JSON válido, sem texto fora dele, no formato:
+{"acoes":[...], "resposta":"texto para o usuário"}
+
+Ações possíveis:
+- {"tipo":"gasto","valor":número,"descricao":"curta","categoria":uma de ${JSON.stringify(CATS)},"data":"AAAA-MM-DD"}
+- {"tipo":"entrada","valor":número,"descricao":"curta","data":"AAAA-MM-DD"}
+- {"tipo":"compromisso","titulo":"curto","data":"AAAA-MM-DD","hora":"HH:MM" ou "","local":"" ,"lembrete_min":número}
+- {"tipo":"editar_compromisso","id":"...", e só os campos que mudam entre titulo, data, hora, local, lembrete_min}
+- {"tipo":"concluir_compromisso","id":"..."}
+- {"tipo":"remover_compromisso","id":"..."}
+- {"tipo":"remover_lancamento","id":"..."}
+- {"tipo":"orcamento","valor":número}
+
+Regras:
+- Uma mensagem pode gerar várias ações (ex.: "paguei 120 de luz e 80 de internet" = 2 gastos).
+- Datas relativas ("amanhã", "sexta", "dia 15", "semana que vem") são resolvidas a partir de "Agora". "Sexta" sem mais nada = a próxima sexta (hoje, se hoje for sexta e o horário ainda não passou). Sem data num gasto = hoje.
+- Valores em reais: "45", "R$45", "45,90", "1.200", "1,2 mil" → número.
+- lembrete_min padrão: 60 se tiver hora; 0 sem hora. Respeite pedidos como "me avisa 30 min antes" ou "um dia antes" (1440).
+- Para editar/concluir/remover, use somente ids que aparecem nos dados. Se for ambíguo, não aja: pergunte.
+- Se faltar algo essencial (ex.: valor de um gasto), não invente: pergunte na resposta e deixe acoes vazio.
+- Perguntas ("quanto gastei", "o que tenho amanhã", "resumo da semana") → acoes vazio e responda usando os dados, somando com cuidado.
+- FOTO ANEXADA: se vier uma imagem (cupom fiscal, nota, recibo, comprovante de Pix/cartão, boleto, conta de luz/água etc.), leia com atenção e extraia valor TOTAL, estabelecimento/beneficiário, data e categoria.
+  • Comprovante de pagamento, cupom ou recibo → ação "gasto" com a data do documento (ou hoje se não houver).
+  • Boleto ou conta AINDA A PAGAR (tem vencimento e não há sinal de pagamento) → ação "compromisso" com titulo "Pagar <conta> R$ <valor>", data = vencimento, hora "09:00", lembrete_min 1440; na resposta diga que agendou o lembrete e que, quando pagar, é só avisar para registrar o gasto. Se o usuário disser que já pagou, registre como gasto.
+  • Se a imagem estiver ilegível ou não for um documento financeiro, não invente: diga o que viu e peça o valor.
+  • Na resposta, cite o estabelecimento e o valor lido para o usuário conferir.
+- "resposta": 1 a 4 frases curtas, tom caloroso e direto, em português do Brasil. Confirme o que anotou com valores em R$ (formato 1.234,56) e datas por extenso curto (ex.: "sexta, 13/11, às 15h"). Se um gasto fizer o mês passar de 80% ou 100% do orçamento, mencione de leve. Não use markdown nem emojis em excesso (no máximo um).`;
+
+const getKey = () => { try { return localStorage.getItem("jarvis_key") || ""; } catch { return ""; } };
+const getModel = () => { try { return localStorage.getItem("jarvis_model") || "claude-sonnet-5-5"; } catch { return "claude-sonnet-5-5"; } };
+const blobToB64 = b => new Promise((ok, bad) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(",")[1]); fr.onerror = bad; fr.readAsDataURL(b); });
+async function askAssistant(text, image){
+  const hist = S.chat.slice(-8, -1).map(m => ({ role: m.r === "u" ? "user" : "assistant", content: m.t }));
+  // keep alternation valid: must start with user and alternate
+  const msgs = [];
+  for (const m of hist) { if (!msgs.length && m.role !== "user") continue; if (msgs.length && msgs[msgs.length-1].role === m.role) msgs[msgs.length-1].content += "\n" + m.content; else msgs.push({...m}); }
+  if (msgs.length && msgs[msgs.length-1].role === "user") msgs.pop();
+  const final = `${SYSTEM}\n\n=== DADOS ATUAIS ===\n${contextBlock()}\n\n=== MENSAGEM DO USUÁRIO ===\n${image ? "[O usuário anexou uma FOTO — veja a imagem.]\n" : ""}${text || "(sem texto, só a foto)"}`;
+  msgs.push({ role: "user", content: final });
+  if (image) {
+    const last = msgs[msgs.length - 1];
+    last.content = [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: await blobToB64(image) } }, { type: "text", text: last.content }];
+  }
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": getKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+    body: JSON.stringify({ model: getModel(), max_tokens: 1200, messages: msgs })
+  });
+  if (!r.ok) {
+    let m = ""; try { const j = await r.json(); m = (j.error && j.error.message) || ""; } catch {}
+    const e = new Error(m || ("HTTP " + r.status)); e.status = r.status; throw e;
+  }
+  const j = await r.json();
+  const out = (j.content || []).filter(c => c.type === "text").map(c => c.text).join("").trim();
+  const mt = out.match(/\{[\s\S]*\}/);
+  if (mt) { try { const o = JSON.parse(mt[0]); if (o && typeof o === "object") return o; } catch {} }
+  return { acoes: [], resposta: out };
+}
+
+// tiny offline parser for when Claude is not available
+function localParse(text){
+  const t = text.toLowerCase();
+  const m = t.match(/(?:r\$\s*)?(\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)/);
+  const isIn = /\b(recebi|ganhei|entrou|salário|salario)\b/.test(t);
+  const isOut = /\b(gastei|paguei|comprei|gasto|conta)\b/.test(t);
+  if (m && (isIn || isOut)) {
+    const valor = parseMoney(m[1]);
+    let desc = text.replace(m[0], "").replace(/\b(gastei|paguei|comprei|recebi|ganhei|entrou|r\$|reais|no|na|de|com|em|do|da)\b/gi, " ").replace(/\s+/g, " ").trim();
+    desc = desc ? desc[0].toUpperCase() + desc.slice(1) : (isIn ? "Entrada" : "Gasto");
+    const cat = /mercado|supermerc/.test(t) ? "Mercado" : /almo|janta|lanche|restaur|ifood|café|cafe/.test(t) ? "Alimentação" : /uber|gasolina|ônibus|onibus|combust|99/.test(t) ? "Transporte" : /luz|água|agua|internet|telefone|celular|conta/.test(t) ? "Contas" : /aluguel|condom/.test(t) ? "Moradia" : /farm|médic|medic|dentista|remédio/.test(t) ? "Saúde" : "Outros";
+    return { acoes: [isIn ? { tipo: "entrada", valor, descricao: desc, data: ymd(new Date()) } : { tipo: "gasto", valor, descricao: desc, categoria: cat, data: ymd(new Date()) }],
+             resposta: `Anotado: ${isIn ? "entrada" : "gasto"} de ${brl(valor)}${isIn ? "" : " em " + cat}.` };
+  }
+  return { acoes: [], resposta: "Sem acesso ao Claude agora, só consigo entender frases simples de gastos (ex.: “gastei 45 no mercado”). Para compromissos, use a aba Agenda → “+ Compromisso”." };
+}
+
+async function applyActions(acoes){
+  const chips = [];
+  for (const a of Array.isArray(acoes) ? acoes : []) {
+    if (!a || typeof a !== "object") continue;
+    try {
+      if (a.tipo === "gasto" || a.tipo === "entrada") {
+        const v = Math.round(Number(a.valor) * 100) / 100; if (!(v > 0)) continue;
+        const obj = { tipo: a.tipo, valor: v, descricao: String(a.descricao || (a.tipo === "gasto" ? "Gasto" : "Entrada")).slice(0, 120),
+          categoria: a.tipo === "gasto" ? (CATS.includes(a.categoria) ? a.categoria : "Outros") : "Entrada",
+          data: validYmd(a.data) || ymd(new Date()), criadoEm: Date.now() };
+        await store.put("lancamentos", uid(), obj);
+        chips.push({ k: a.tipo === "gasto" ? "g" : "e", t: `${a.tipo === "gasto" ? "−" : "+"} ${brl(v)} · ${a.tipo === "gasto" ? obj.categoria : obj.descricao}` });
+      } else if (a.tipo === "compromisso") {
+        const data = validYmd(a.data); if (!data || !a.titulo) continue;
+        const hora = validHm(a.hora);
+        const obj = { titulo: String(a.titulo).slice(0, 120), data, hora, local: String(a.local || "").slice(0, 120),
+          lembrete_min: Number.isFinite(Number(a.lembrete_min)) ? Number(a.lembrete_min) : (hora ? 60 : 0), concluido: false, criadoEm: Date.now() };
+        await store.put("compromissos", uid(), obj);
+        chips.push({ t: `${dShort(data)}${hora ? " " + hora : ""} · ${obj.titulo}` });
+      } else if (a.tipo === "editar_compromisso" && S.ev[a.id]) {
+        const p = {};
+        if (a.titulo) p.titulo = String(a.titulo).slice(0, 120);
+        if (validYmd(a.data)) p.data = a.data;
+        if (a.hora !== undefined) p.hora = validHm(a.hora);
+        if (a.local !== undefined) p.local = String(a.local || "").slice(0, 120);
+        if (a.lembrete_min !== undefined && Number.isFinite(Number(a.lembrete_min))) p.lembrete_min = Number(a.lembrete_min);
+        await store.patch("compromissos", a.id, p);
+        chips.push({ t: `Alterado · ${p.titulo || S.ev[a.id].titulo}` });
+      } else if (a.tipo === "concluir_compromisso" && S.ev[a.id]) {
+        await store.patch("compromissos", a.id, { concluido: true });
+        chips.push({ t: `Concluído · ${S.ev[a.id].titulo}` });
+      } else if (a.tipo === "remover_compromisso" && S.ev[a.id]) {
+        const t = S.ev[a.id].titulo; await store.del("compromissos", a.id); chips.push({ t: `Removido · ${t}` });
+      } else if ((a.tipo === "remover_lancamento" || a.tipo === "remover_gasto") && S.lanc[a.id]) {
+        const l = S.lanc[a.id]; await store.del("lancamentos", a.id); chips.push({ k: "g", t: `Removido · ${l.descricao}` });
+      } else if (a.tipo === "orcamento" && Number(a.valor) > 0) {
+        await store.cfg({ orcamento: Number(a.valor) }); chips.push({ k: "e", t: `Orçamento · ${brl(a.valor)}` });
+      }
+    } catch (e) { chips.push({ k: "g", t: "Falhou ao salvar um item" }); }
+  }
+  return chips;
+}
+
+/* ---------- photo handling ---------- */
+let photo = null; // {blob, thumb}
+async function shrink(file){
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = bad; i.src = url; });
+    const make = (max, q) => { const k = Math.min(1, max / Math.max(img.width, img.height)); const c = document.createElement("canvas");
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); return c; };
+    const big = make(1600, .85);
+    const blob = await new Promise(ok => big.toBlob(ok, "image/jpeg", .85));
+    const thumb = make(240, .7).toDataURL("image/jpeg", .7);
+    return { blob: blob || file, thumb };
+  } finally { URL.revokeObjectURL(url); }
+}
+function setPhoto(p){
+  photo = p;
+  $("#photo-prev").hidden = !p;
+  if (p) $("#photo-img").src = p.thumb;
+}
+$("#cam").addEventListener("click", () => $("#photo-in").click());
+$("#photo-x").addEventListener("click", () => setPhoto(null));
+$("#photo-in").addEventListener("change", async e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  if (!getKey()) { toast("Para ler fotos, configure sua chave da API em Configurações"); return; }
+  try { setPhoto(await shrink(f)); ta.focus(); } catch { toast("Não consegui abrir essa imagem"); }
+});
+
+async function send(text){
+  text = text.trim();
+  const img = photo;
+  if ((!text && !img) || S.busy) return;
+  setPhoto(null);
+  const um = { r: "u", t: text || (img ? "Foto de comprovante" : ""), ts: Date.now() };
+  if (img) um.img = img.thumb;
+  S.chat.push(um);
+  S.busy = true; renderChat(); scrollChat();
+  let res;
+  try {
+    if (getKey()) res = await askAssistant(text, img && img.blob);
+    else res = localParse(text);
+  } catch (e) {
+    const st = e && e.status;
+    if (st === 401 || st === 403) res = { acoes: [], resposta: "Minha chave da API foi recusada. Confira em Configurações se ela está correta." };
+    else if (st === 400 && /credit|balance/i.test(e.message)) res = { acoes: [], resposta: "Sua conta da Anthropic está sem créditos. Adicione créditos em console.anthropic.com e tente de novo." };
+    else if (st === 429 || st === 529) res = { acoes: [], resposta: "Estou recebendo muitos pedidos agora. Tente de novo em um minutinho." };
+    else if (!st) res = { acoes: [], resposta: "Parece que você está sem internet. Tente de novo quando a conexão voltar." };
+    else res = { acoes: [], resposta: "Não consegui processar agora (" + (e.message || "erro") + "). Pode tentar de novo?" };
+  }
+  const chips = await applyActions(res.acoes);
+  S.chat.push({ r: "a", t: String(res.resposta || (chips.length ? "Anotado!" : "Certo.")), chips, ts: Date.now() });
+  S.busy = false;
+  render(); scrollChat();
+  safe(() => store.chat(), "Não consegui salvar a conversa");
+}
+
+/* ---------- sheets / forms ---------- */
+let editingEv = null, txType = "gasto";
+function openSheet(name, data){
+  const sh = $("#sh-" + name); sh.classList.add("on");
+  if (name === "ev") {
+    const f = $("#f-ev"); f.reset(); editingEv = data ? data.id : null;
+    $("#ev-h").textContent = data ? "Editar compromisso" : "Novo compromisso";
+    f.data.value = data ? data.data : ymd(new Date());
+    if (data) { f.titulo.value = data.titulo; f.hora.value = data.hora || ""; f.local.value = data.local || ""; f.lembrete_min.value = String(data.lembrete_min ?? 60); }
+    setTimeout(() => f.titulo.focus(), 50);
+  } else if (name === "tx") {
+    const f = $("#f-tx"); f.reset(); f.data.value = ymd(new Date()); setTxType("gasto"); setTimeout(() => f.valor.focus(), 50);
+  } else if (name === "cfg") {
+    const f = $("#f-cfg"); f.key.value = getKey(); f.model.value = getModel();
+  } else if (name === "budget") {
+    $("#f-budget").orcamento.value = S.cfg.orcamento ? String(S.cfg.orcamento).replace(".", ",") : "";
+  }
+}
+const closeSheets = () => $$(".sheet-bg").forEach(s => s.classList.remove("on"));
+function setTxType(t){ txType = t; $$("#tx-seg button").forEach(b => b.classList.toggle("on", b.dataset.v === t)); $("#tx-cat").style.display = t === "gasto" ? "" : "none"; }
+$("#f-tx").categoria.innerHTML = CATS.map(c => `<option>${c}</option>`).join("");
+
+$("#f-ev").addEventListener("submit", async ev => {
+  ev.preventDefault(); const f = ev.target;
+  const obj = { titulo: f.titulo.value.trim(), data: f.data.value, hora: f.hora.value, local: f.local.value.trim(), lembrete_min: Number(f.lembrete_min.value) };
+  if (!obj.titulo || !validYmd(obj.data)) return;
+  closeSheets();
+  if (editingEv) await safe(() => store.patch("compromissos", editingEv, obj));
+  else await safe(() => store.put("compromissos", uid(), { ...obj, concluido: false, criadoEm: Date.now() }));
+  toast(editingEv ? "Compromisso atualizado" : "Compromisso salvo");
+});
+$("#f-tx").addEventListener("submit", async ev => {
+  ev.preventDefault(); const f = ev.target;
+  const valor = Math.round(parseMoney(f.valor.value) * 100) / 100;
+  if (!(valor > 0)) { toast("Informe um valor válido"); return; }
+  const obj = { tipo: txType, valor, descricao: f.descricao.value.trim() || (txType === "gasto" ? f.categoria.value : "Entrada"),
+    categoria: txType === "gasto" ? f.categoria.value : "Entrada", data: f.data.value || ymd(new Date()), criadoEm: Date.now() };
+  closeSheets(); await safe(() => store.put("lancamentos", uid(), obj)); toast("Lançamento salvo");
+});
+$("#f-budget").addEventListener("submit", async ev => {
+  ev.preventDefault(); const v = parseMoney(ev.target.orcamento.value);
+  closeSheets(); await safe(() => store.cfg({ orcamento: v > 0 ? Math.round(v*100)/100 : 0 })); toast("Orçamento salvo");
+});
+$("#f-cfg").addEventListener("submit", ev => {
+  ev.preventDefault(); const f = ev.target;
+  try { localStorage.setItem("jarvis_key", f.key.value.trim()); localStorage.setItem("jarvis_model", f.model.value); } catch { toast("Este navegador não deixou salvar"); return; }
+  closeSheets(); render(); toast(f.key.value.trim() ? "Configurações salvas" : "Chave removida");
+});
+$("#exp").addEventListener("click", () => {
+  const data = { app: "jarvis", versao: 1, exportadoEm: new Date().toISOString(), lancamentos: S.lanc, compromissos: S.ev, config: S.cfg, chat: S.chat };
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: "application/json" }));
+  a.download = `jarvis-backup-${ymd(new Date())}.json`; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+});
+$("#imp").addEventListener("click", () => $("#imp-in").click());
+$("#imp-in").addEventListener("change", async e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!d || d.app !== "jarvis") throw new Error("arquivo não é um backup do JARVIS");
+    if (!confirm("Importar este backup? Os itens dele serão juntados aos que já estão aqui.")) return;
+    Object.assign(S.lanc, d.lancamentos || {}); Object.assign(S.ev, d.compromissos || {}); S.cfg = Object.assign({}, d.config || {}, S.cfg);
+    if (Array.isArray(d.chat) && !S.chat.length) S.chat = d.chat;
+    LS.set("lancamentos", S.lanc); LS.set("compromissos", S.ev); LS.set("config", S.cfg); LS.set("chat", S.chat);
+    closeSheets(); render(); toast("Backup importado");
+  } catch (err) { toast("Não consegui importar: " + err.message); }
+});
+$("#wipe").addEventListener("click", () => {
+  if (!confirm("Apagar TODOS os compromissos, lançamentos e a conversa deste aparelho? Isso não pode ser desfeito.")) return;
+  S.lanc = {}; S.ev = {}; S.cfg = {}; S.chat = [];
+  ["lancamentos","compromissos","config","chat","notified"].forEach(k => { try { localStorage.removeItem("sec_" + k); } catch {} });
+  closeSheets(); render(); toast("Tudo apagado");
+});
+$("#tx-seg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setTxType(b.dataset.v); });
+$$(".sheet-bg").forEach(s => s.addEventListener("click", e => { if (e.target === s) closeSheets(); }));
+
+/* ---------- global clicks ---------- */
+document.addEventListener("click", async e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.tab) return setTab(t.dataset.tab);
+  if (t.dataset.open) return openSheet(t.dataset.open);
+  if (t.hasAttribute("data-close")) return closeSheets();
+  if (t.dataset.say) return send(t.dataset.say);
+  if (t.dataset.done) { const ev = S.ev[t.dataset.done]; if (ev) await safe(() => store.patch("compromissos", t.dataset.done, { concluido: !ev.concluido })); return; }
+  if (t.dataset.editEv) { const id = t.dataset.editEv; return openSheet("ev", { id, ...S.ev[id] }); }
+  if (t.dataset.delEv) {
+    const id = t.dataset.delEv, old = S.ev[id]; if (!old) return;
+    await safe(() => store.del("compromissos", id));
+    toast(`“${old.titulo}” apagado`, { undo: () => safe(() => store.put("compromissos", id, old)) });
+    return;
+  }
+  if (t.dataset.delTx) {
+    const id = t.dataset.delTx, old = S.lanc[id]; if (!old) return;
+    await safe(() => store.del("lancamentos", id));
+    toast(`${old.descricao} apagado`, { undo: () => safe(() => store.put("lancamentos", id, old)) });
+    return;
+  }
+  if (t.id === "notif-btn") {
+    try { const p = await Notification.requestPermission(); toast(p === "granted" ? "Avisos do navegador ativados" : "O navegador não liberou; os avisos continuam aparecendo aqui no app"); }
+    catch { toast("Este navegador não permite; os avisos continuam aparecendo aqui no app"); }
+    renderAgenda(); return;
+  }
+  if (t.id === "m-prev") { S.month.setMonth(S.month.getMonth() - 1); renderGastos(); return; }
+  if (t.id === "m-next") { S.month.setMonth(S.month.getMonth() + 1); renderGastos(); return; }
+});
+
+const ta = $("#chat-in");
+ta.addEventListener("input", () => { ta.style.height = "auto"; ta.style.height = Math.min(120, ta.scrollHeight) + "px"; });
+ta.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#chat-form").requestSubmit(); } });
+$("#chat-form").addEventListener("submit", e => { e.preventDefault(); const v = ta.value; ta.value = ""; ta.style.height = "auto"; send(v); });
+
+/* ---------- boot ---------- */
+render();
+function useLocal(){
+  S.mode = "ready";
+  S.lanc = LS.get("lancamentos") || {}; S.ev = LS.get("compromissos") || {}; S.cfg = LS.get("config") || {}; S.chat = LS.get("chat") || [];
+  render(); scrollChat();
+}
+useLocal();
+$("#cam").hidden = false;
+checkReminders();
+window.addEventListener("storage", e => { if (e.key && e.key.startsWith("sec_")) useLocal(); });
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+
+setInterval(() => { checkReminders(); renderHeader(); if (curTab === "home") renderHome(); }, 30000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { checkReminders(); render(); } });
+})();
+</script>
+</body>
+</html>
